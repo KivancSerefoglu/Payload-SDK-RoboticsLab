@@ -46,7 +46,7 @@
 #define VIDEO_FRAME_AUD_LENGTH                  6
 #define RSP_MEDIA_FILE_STORE_PATH __FILE__
 #define VIDEO_BUFFER_SIZE                       1024 * 4
-#define START_VIDEO_STREAM_CMD                  "libcamera-vid -t 0 --width 1280 --height 720 --framerate 25 --codec h264 --inline --output -  --denoise auto --profile high --bitrate 2000000"
+#define START_VIDEO_STREAM_CMD "libcamera-vid -t 0 --width 1280 --height 720 --framerate 25 --codec h264 --inline --output - --denoise auto --profile high --bitrate 2000000 2>/dev/null"
 /* Private types -------------------------------------------------------------*/
 
 /* Private functions declaration ---------------------------------------------*/
@@ -59,6 +59,7 @@ static T_DjiReturnCode DjiTest_CameraTakePhotoImpl(const char *filename);
 static void DjiTest_ProcessSingleNALUnit(uint8_t* nal_data, size_t nal_length);
 static size_t DjiTest_ProcessCompleteNALUnits(uint8_t* data, size_t length);
 static void DjiTest_ProcessRawH264WithBuffer(uint8_t* data, size_t length);
+
 /* Private variables -------------------------------------------------------------*/
 static int s_photoCount = 0;
 static bool s_recordingFlag = false;
@@ -74,6 +75,8 @@ static bool s_cameraTaskRunningFlag = false;
 static uint8_t *s_nal_buffer = NULL;
 static size_t s_nal_buffer_size = 0;
 static size_t s_nal_buffer_capacity = 0;
+static bool s_liveviewCameraState = true;
+static T_DjiMutexHandle s_liveviewStateMutex;
 
 /* Exported functions definition ---------------------------------------------*/
 T_DjiReturnCode DjiTest_RaspberryPiCameraInit() {
@@ -91,6 +94,11 @@ T_DjiReturnCode DjiTest_RaspberryPiCameraInit() {
     s_nal_buffer_size = 0;
 
     if(osalHandler->MutexCreate(&s_cameraMutex)!= DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Create mutex error");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_SYSTEM_ERROR;
+    }
+
+    if(osalHandler->MutexCreate(&s_liveviewStateMutex)!= DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("Create mutex error");
         return DJI_ERROR_SYSTEM_MODULE_CODE_SYSTEM_ERROR;
     }
@@ -144,8 +152,26 @@ void DjiTest_raspberryPiCameraDeinit(void) {
         s_cameraMutex = NULL;
     }
 
+    if (s_liveviewStateMutex) {
+        DjiPlatform_GetOsalHandler()->MutexDestroy(s_liveviewStateMutex);
+        s_liveviewStateMutex = NULL;
+    }
+
     USER_LOG_INFO("Raspberry Pi Camera deinitialized");
 }
+
+void DjiTest_RaspberryPiCameraLiveviewStatSet(bool liveviewState) {
+    DjiPlatform_GetOsalHandler()->MutexLock(s_liveviewStateMutex);
+    s_liveviewCameraState = liveviewState;
+    DjiPlatform_GetOsalHandler()->MutexUnlock(s_liveviewStateMutex);
+}
+
+void DjiTest_RaspberryPiCameraLiveviewStatGet(bool *liveviewState) {
+    DjiPlatform_GetOsalHandler()->MutexLock(s_liveviewStateMutex);
+    *liveviewState = s_liveviewCameraState;
+    DjiPlatform_GetOsalHandler()->MutexUnlock(s_liveviewStateMutex);
+}
+
 /* Private functions definition-----------------------------------------------*/
 static void *DjiTest_RaspberryPiCameraTask(void *arg) {
     T_DjiReturnCode returnCode;
@@ -379,10 +405,13 @@ static size_t DjiTest_ProcessCompleteNALUnits(uint8_t* data, size_t length)
 static void DjiTest_ProcessSingleNALUnit(uint8_t* nal_data, size_t nal_length)
 {
     bool local_recording = false;
+    bool liveviewState = true;
+    uint8_t* frame_with_aud = NULL;
+
     if (!nal_data || nal_length == 0) return;
     // add aud
     size_t total_frame_size = nal_length + VIDEO_FRAME_AUD_LENGTH;
-    uint8_t* frame_with_aud = malloc(total_frame_size);
+    frame_with_aud = malloc(total_frame_size);
 
     if (!frame_with_aud) {
         USER_LOG_ERROR("Failed to allocate frame buffer");
@@ -417,7 +446,8 @@ static void DjiTest_ProcessSingleNALUnit(uint8_t* nal_data, size_t nal_length)
         size_t offset = 0;
         while (offset < total_frame_size) {
             size_t send_length = (total_frame_size - offset > 6000) ? 6000 : (total_frame_size - offset);
-
+            DjiTest_RaspberryPiCameraLiveviewStatGet(&liveviewState);
+            if(!liveviewState) goto free;
             T_DjiReturnCode returnCode = DjiPayloadCamera_SendVideoStream(
                 frame_with_aud + offset,
                 send_length
@@ -430,6 +460,8 @@ static void DjiTest_ProcessSingleNALUnit(uint8_t* nal_data, size_t nal_length)
             offset += send_length;
         }
     } else {
+        DjiTest_RaspberryPiCameraLiveviewStatGet(&liveviewState);
+        if(!liveviewState) goto free;
         T_DjiReturnCode returnCode = DjiPayloadCamera_SendVideoStream(
             frame_with_aud,
             total_frame_size
@@ -440,6 +472,7 @@ static void DjiTest_ProcessSingleNALUnit(uint8_t* nal_data, size_t nal_length)
         }
     }
 
+free:
     free(frame_with_aud);
 }
 

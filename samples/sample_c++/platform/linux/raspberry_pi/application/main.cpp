@@ -76,6 +76,7 @@ start:
         << "| [g] Request Lidar data sample - Request Lidar data and store the point cloud data as pcd files   |\n"
         << "| [h] Request Radar data sample - Request radar data                                               |\n"
         << "| [l] Run widget states manager sample, control widget states on other payload                     |\n"
+        << "| [m] Run H.264 liveview sample with config param - save H.264 files in the current directory      |\n"
         << std::endl;
 
     std::cin >> inputChar;
@@ -118,6 +119,9 @@ start:
             break;
         case 'l':
             DjiTest_WidgetMannagerStart();
+            break;
+        case 'm':
+            DjiTest_RunCameraStreamViewWithParam();
             break;
         default:
             break;

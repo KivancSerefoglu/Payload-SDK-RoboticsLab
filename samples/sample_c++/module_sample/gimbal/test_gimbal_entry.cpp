@@ -127,7 +127,7 @@ start:
             int32_t enableFlag;
 
             osalHandler->TaskSleepMs(10);
-            printf("Input enable flag: ");
+            printf("Input enable flag (0:disable or 1:enable): ");
             scanf("%d", &enableFlag);
 
             returnCode = DjiGimbalManager_Init();
@@ -150,7 +150,7 @@ start:
             int32_t percentage;
 
             osalHandler->TaskSleepMs(10);
-            printf("Input max speed percentage of yaw axis: ");
+            printf("Input max speed percentage of yaw axis(1 - 100): ");
             scanf("%d", &percentage);
 
             returnCode = DjiGimbalManager_Init();
@@ -167,7 +167,7 @@ start:
             USER_LOG_INFO("Set yaw axis's max speed percentage to %d successfully!", percentage);
 
             osalHandler->TaskSleepMs(10);
-            printf("Input max speed percentage of pitch axis: ");
+            printf("Input max speed percentage of pitch axis(1 - 100): ");
             scanf("%d", &percentage);
 
             returnCode = DjiGimbalManager_SetControllerMaxSpeedPercentage(gimbalMountPosition, DJI_GIMBAL_AXIS_PITCH, (uint8_t)percentage);
@@ -184,7 +184,7 @@ start:
             int32_t factor;
 
             osalHandler->TaskSleepMs(10);
-            printf("Input yaw axis's smooth factor: ");
+            printf("Input yaw axis's smooth factor(0 - 30): ");
             scanf("%d", &factor);
 
             returnCode = DjiGimbalManager_Init();
@@ -201,7 +201,7 @@ start:
             USER_LOG_INFO("Set yaw axis smooth factor to %d successfully!", factor);
 
             osalHandler->TaskSleepMs(10);
-            printf("Input pitch axis's smooth factor: ");
+            printf("Input pitch axis's smooth factor(0 - 30): ");
             scanf("%d", &factor);
 
             returnCode = DjiGimbalManager_SetControllerSmoothFactor(gimbalMountPosition, DJI_GIMBAL_AXIS_PITCH, (uint8_t)factor);
@@ -315,8 +315,8 @@ start:
                 osalHandler->TaskSleepMs(5);
                 printf("gimbal mode: 0: free, 1: fpv, 2: yaw-follow, 3: exit sample\n");
                 printf("rotate mode: 0: rel, 1: abs\n");
-                printf("Input gimbal mode, rotate mode, p, r, y(range in 0 ~ 360 deg if in abs mode): ");
-
+                printf("pitch, roll, yaw(range in 0 ~ 360 deg if in abs mode)");
+                printf("please input <gimbal mode> <rotate mode> <pitch> <roll> <yaw> (separated by spaces): ");
                 scanf("%d", &gimbalMode);
                 if (gimbalMode == 3) {
                     break;

@@ -53,6 +53,7 @@ typedef enum {
     DJI_WIDGET_MGR_SPEAKER_SYSTEM_STATE_PLAYING = 2,
     DJI_WIDGET_MGR_SPEAKER_SYSTEM_STATE_EXCEPTION = 3,
     DJI_WIDGET_MGR_SPEAKER_SYSTEM_STATE_IN_TTS_CONVERSION = 4,
+    DJI_WIDGET_MGR_SPEAKER_SYSTEM_STATE_PLAYING_IN_TRANSMISSION = 5,
 } E_DjiWidgetManagerSpeakerStates;
 
 /**
@@ -115,7 +116,7 @@ typedef struct {
     E_DjiWidgetSpeakerWorkMode workMode;                    /*!< The working mode of the speaker */
     E_DjiWidgetSpeakerPlayMode playMode;                    /*!< The playing mode of the speaker */
     uint8_t playVloume;                                     /*!< The vloume of the speaker */
-    E_DjiWidgetManagerSpeakerStates systemStates;	            /*!< The system states of the speaker */
+    E_DjiWidgetManagerSpeakerStates systemStates;           /*!< The system states of the speaker */
     uint8_t playFileUuid[WIDGET_MANAGER_MAX_FILE_NAME_LEN]; /*!< The uuid of the playing file */
     uint8_t playFileName[WIDGET_MANAGER_MAX_FILE_NAME_LEN]; /*!< The name of the playing file */
     uint8_t playQuality;                                    /*!< packet loss per second [0-255] mapped to 0%-100% */

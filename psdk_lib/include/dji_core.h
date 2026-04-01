@@ -29,6 +29,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "dji_platform.h"
+#include "dji_typedef.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,6 +110,17 @@ T_DjiReturnCode DjiCore_ApplicationStart(void);
  * @return Execution result.
  */
 T_DjiReturnCode DjiCore_DeInit(void);
+
+/**
+ * @brief Set the sub-device type of the DJI SDK.
+ * @details This API is only required for payloads that need to report a specific SDK device type.
+ * If you need to use, it must be called before `DjiCore_Init`.
+ * Currently it is only applicable when the payload is a transport box
+ * (DJI_SDK_DEVICE_TYPE_TRANSPORT_BOX).
+ * @param type: The device type to be set.
+ * @return Execution result.
+ */
+T_DjiReturnCode DjiCore_SetSdkDeviceType(E_DjiSdkDeviceType type);
 
 #ifdef __cplusplus
 }

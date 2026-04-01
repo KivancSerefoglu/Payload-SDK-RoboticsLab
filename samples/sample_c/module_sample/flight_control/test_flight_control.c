@@ -159,6 +159,12 @@ T_DjiReturnCode DjiTest_FlightControlInit(void)
         return returnCode;
     }
 
+    returnCode = DjiFlightController_SetRCLostActionEnableStatus(DJI_FLIGHT_CONTROLLER_DISABLE_RC_LOST_ACTION);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Set RC lost action failed, error code:0x%08llX", returnCode);
+        return returnCode;
+    }
+
     /*! subscribe fc data */
     returnCode = DjiFcSubscription_SubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_STATUS_FLIGHT,
                                                   DJI_DATA_SUBSCRIPTION_TOPIC_10_HZ,
@@ -456,6 +462,7 @@ void DjiTest_FlightControlGoHomeForceLandingSample()
     DjiTest_WidgetLogAppend("Successful go home and confirm force landing\r\n");
 
     USER_LOG_INFO("-> Step 9: Release joystick authority");
+    s_osalHandler->TaskSleepMs(1000);
     DjiTest_WidgetLogAppend("-> Step 9: Release joystick authority");
     returnCode = DjiFlightController_ReleaseJoystickCtrlAuthority();
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
@@ -674,7 +681,9 @@ void DjiTest_FlightControlSetGetParamSample()
     E_DjiFlightControllerRtkPositionEnableStatus rtkEnableStatus;
     E_DjiFlightControllerRCLostAction rcLostAction;
     T_DjiAircraftInfoBaseInfo aircraftInfoBaseInfo;
+    E_DjiFlightControllerCloseAllAvoidCommand allAvoidStatus;
     uint16_t countryCode;
+    E_DjiFlightControllerRCLostActionEnableStatus rcLostActionStatus;
 
     returnCode = DjiAircraftInfo_GetBaseInfo(&aircraftInfoBaseInfo);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
@@ -719,7 +728,8 @@ void DjiTest_FlightControlSetGetParamSample()
     if (aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M300_RTK ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30 ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30T ||
-        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK) {
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK ||
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_FC30) {
         returnCode = DjiFlightController_SetHorizontalRadarObstacleAvoidanceEnableStatus(
             DJI_FLIGHT_CONTROLLER_ENABLE_OBSTACLE_AVOIDANCE);
         if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
@@ -734,7 +744,8 @@ void DjiTest_FlightControlSetGetParamSample()
     if (aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M300_RTK ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30 ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30T ||
-        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK) {
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK ||
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_FC30 ) {
         returnCode = DjiFlightController_GetHorizontalRadarObstacleAvoidanceEnableStatus(
             &horizontalRadarObstacleAvoidanceStatus);
         if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
@@ -774,7 +785,8 @@ void DjiTest_FlightControlSetGetParamSample()
     if (aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M300_RTK ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30 ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30T ||
-        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK) {
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK ||
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_FC30) {
         returnCode = DjiFlightController_SetUpwardsRadarObstacleAvoidanceEnableStatus(
             DJI_FLIGHT_CONTROLLER_ENABLE_OBSTACLE_AVOIDANCE);
         if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
@@ -789,7 +801,8 @@ void DjiTest_FlightControlSetGetParamSample()
     if (aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M300_RTK ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30 ||
         aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M30T ||
-        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK) {
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M350_RTK ||
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_FC30) {
         returnCode = DjiFlightController_GetUpwardsRadarObstacleAvoidanceEnableStatus(
             &upwardsRadarObstacleAvoidanceStatus);
         if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
@@ -887,6 +900,35 @@ void DjiTest_FlightControlSetGetParamSample()
         DjiTest_WidgetLogAppend("Current rc lost action is %d\r\n", rcLostAction);
         s_osalHandler->TaskSleepMs(1000);
     }
+    if (aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_FC100){
+        returnCode = DjiFlightController_SetAllAvoidAction(DJI_FLIGHT_CONTROLLER_ENABLE_ALL_AVIOD);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS){
+            USER_LOG_ERROR("--> Step 17: Turn on set all avoidance for AG: %d failed", returnCode);
+            goto out;
+        }
+        USER_LOG_INFO("--> Step 17: Turn on set all avoidance for return AG: %d success", returnCode);
+        s_osalHandler->TaskSleepMs(1000);
+
+        returnCode = DjiFlightController_GetAllAvoidAction(&allAvoidStatus);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS){
+            USER_LOG_ERROR("--> Step 17: Turn on get all avoidance for AG: %d failed", returnCode);
+            goto out;
+        }
+        USER_LOG_INFO("--> Step 17: Turn on get all avoidance for result AG: %d success", allAvoidStatus);
+
+        s_osalHandler->TaskSleepMs(1000);
+        returnCode = DjiFlightController_SetRCLostActionEnableStatus(DJI_FLIGHT_CONTROLLER_DISABLE_RC_LOST_ACTION);{
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS){
+                USER_LOG_ERROR("--> Step 18: Turn on set all avoidance for AG: %d failed", returnCode);
+                goto out;
+            }else{
+                USER_LOG_INFO("--> Step 18: Turn on set all avoidance for AG: %d success", returnCode);
+                s_osalHandler->TaskSleepMs(1000);
+                returnCode = DjiFlightController_GetEnableRCLostActionStatus(&rcLostActionStatus);
+                USER_LOG_INFO("--> Step 18: Turn on get GetEnableRCLostActionStatus:%d, ret:%d", rcLostActionStatus), returnCode;
+            }
+        }
+    }
 
 out:
     USER_LOG_INFO("Flight control set-get-param sample end");
@@ -897,6 +939,7 @@ void DjiTest_FlightControlSetGetPerceptionParamSample()
 {
     T_DjiReturnCode returnCode;
     uint16_t exit_reason;
+    bool ctrl_mode;
     T_DjiAircraftInfoBaseInfo aircraftInfoBaseInfo;
 
     returnCode = DjiAircraftInfo_GetBaseInfo(&aircraftInfoBaseInfo);
@@ -954,6 +997,35 @@ void DjiTest_FlightControlSetGetPerceptionParamSample()
     };
     USER_LOG_INFO("DjiFlightController_GetExitReason is %d\r\n", exit_reason);
     s_osalHandler->TaskSleepMs(1000);
+
+    if (aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M4T ||
+        aircraftInfoBaseInfo.aircraftType == DJI_AIRCRAFT_TYPE_M4E) {
+        USER_LOG_INFO("--> Step 5: DjiFlightController_SetControlInAttitudeModeEnabled mode enable");
+        DjiTest_WidgetLogAppend("--> Step 5: DjiFlightController_SetControlInAttitudeModeEnabled mode enable");
+        returnCode = DjiFlightController_SetControlInAttitudeModeEnabled(true);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("DjiFlightController_SetControlInAttitudeModeEnabled failed, error code: 0x%08X", returnCode);
+        };
+        returnCode = DjiFlightController_GetControlInAttitudeModeEnabled(&ctrl_mode);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("DjiFlightController_GetControlInAttitudeModeEnabled failed, error code: 0x%08X", returnCode);
+        };
+        USER_LOG_INFO("DjiFlightController_GetSdkCtrlModeInAtti is %d", ctrl_mode);
+        s_osalHandler->TaskSleepMs(1000);
+
+        USER_LOG_INFO("--> Step 6: DjiFlightController_SetControlInAttitudeModeEnabled mode disable");
+        DjiTest_WidgetLogAppend("--> Step 6: DjiFlightController_SetControlInAttitudeModeEnabled mode disable");
+        returnCode = DjiFlightController_SetControlInAttitudeModeEnabled(false);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("DjiFlightController_SetControlInAttitudeModeEnabled failed, error code: 0x%08X", returnCode);
+        };
+        returnCode = DjiFlightController_GetControlInAttitudeModeEnabled(&ctrl_mode);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("DjiFlightController_GetControlInAttitudeModeEnabled failed, error code: 0x%08X", returnCode);
+        };
+        USER_LOG_INFO("DjiFlightController_GetControlInAttitudeModeEnabled is %d", ctrl_mode);
+        s_osalHandler->TaskSleepMs(1000);
+    }
 
 out:
     USER_LOG_INFO("Flight control set-get-perception-param sample end");
@@ -1047,6 +1119,139 @@ void DjiTest_FlightControlSetModeStartMission()
     USER_LOG_INFO("Flight control register callback sample end");
     DjiTest_WidgetLogAppend("Flight control register callback sample end");
 
+    return;
+}
+
+T_DjiReturnCode DjiTest_FlightControlOsdInfoCallback(T_DjiFlightControllerOsdInfo eventData)
+{
+    USER_LOG_INFO("DjiTest_FlightControlOsdInfoCallback, relative_height = %d",
+                   eventData.relative_height);
+}
+
+T_DjiReturnCode DjiTest_FlightControlRegisterOsdInfoSample(void)
+{
+    T_DjiReturnCode returnCode;
+
+    returnCode = DjiFlightController_RegisterOsdInfoCallBack(DjiTest_FlightControlOsdInfoCallback);
+    USER_LOG_INFO("RegisterOsdInfoCallBack ret = %d", returnCode);
+
+    return returnCode;
+}
+
+T_DjiReturnCode DjiTest_FlightControlStealthModeSample(void)
+{
+    T_DjiReturnCode returnCode;
+    E_DjiFlightControllerLightStatus status = 0;
+    E_DjiFlightControllerLightStatus armModeSelect = 0;
+    E_DjiFlightControllerLightStatus bottomModeSelect = 0;
+    E_DjiFlightControllerLightStatus batteryModeSelect = 0;
+    int count = 5;
+
+    USER_LOG_INFO("--> Please select the armlight mode you want to choose");
+    USER_LOG_INFO("--> 0. Turn off light  1. Turn on light");
+    DjiTest_WidgetLogAppend("--> Please select the armlight mode you want to choose");
+    DjiTest_WidgetLogAppend("--> 0. Turn off light  1. Turn on light");
+
+    scanf("%d", &armModeSelect);
+    if (armModeSelect >= DJI_FLIGHT_CONTROLLER_LIGHT_STATUS_MAX) {
+        USER_LOG_ERROR("Invalid light mode");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_INVALID_PARAMETER;
+    }
+
+    USER_LOG_INFO("--> Please select the bottomlight mode you want to choose");
+    USER_LOG_INFO("--> 0. Turn off light  1. Turn on light");
+    DjiTest_WidgetLogAppend("--> Please select the bottomlight mode you want to choose");
+    DjiTest_WidgetLogAppend("--> 0. Turn off light  1. Turn on light");
+
+    scanf("%d", &bottomModeSelect);
+    if (bottomModeSelect >= DJI_FLIGHT_CONTROLLER_LIGHT_STATUS_MAX) {
+        USER_LOG_ERROR("Invalid light mode");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_INVALID_PARAMETER;
+    }
+
+    USER_LOG_INFO("--> Please select the batterylight mode you want to choose");
+    USER_LOG_INFO("--> 0. Turn off light  1. Turn on light");
+    DjiTest_WidgetLogAppend("--> Please select the batterylight mode you want to choose");
+    DjiTest_WidgetLogAppend("--> 0. Turn off light  1. Turn on light");
+
+    scanf("%d", &batteryModeSelect);
+    if (batteryModeSelect >= DJI_FLIGHT_CONTROLLER_LIGHT_STATUS_MAX) {
+        USER_LOG_ERROR("Invalid light mode");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_INVALID_PARAMETER;
+    }
+
+    while (count) {
+        USER_LOG_INFO("---------------------------------------" );
+        status = DJI_FLIGHT_CONTROLLER_LIGHT_STATUS_MAX;
+        returnCode = DjiFlightController_GetArmLightStatus(&status);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("Get arm lights status failed, error code: %llu", returnCode);
+        };
+        if (status != armModeSelect)
+        {
+            USER_LOG_INFO("start control arm light, status: %d", armModeSelect);
+            returnCode = DjiFlightController_SetArmLightStatus(armModeSelect);
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Set arm lights status failed, error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("Set arm lights status success, status: %d", armModeSelect);
+            }
+        }
+
+        status = DJI_FLIGHT_CONTROLLER_LIGHT_STATUS_MAX;
+        returnCode = DjiFlightController_GetBatteryLightStatus(&status);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("Set battery lights status failed, error code: %llu", returnCode);
+        };
+        if (status != batteryModeSelect)
+        {
+            USER_LOG_INFO("start control battery light, status: %d", batteryModeSelect);
+            returnCode = DjiFlightController_SetBatteryLightStatus(batteryModeSelect);
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Set battery lights status failed, error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("Set battery lights status success, status: %d", batteryModeSelect);
+            }
+        }
+
+        status = DJI_FLIGHT_CONTROLLER_LIGHT_STATUS_MAX;
+        returnCode = DjiFlightController_GetBottomLightStatus(&status);
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("Set bottom lights status failed, error code: %llu", returnCode);
+        };
+        if (status != bottomModeSelect)
+        {
+            USER_LOG_INFO("start control bottom light, status: %d", bottomModeSelect);
+            returnCode = DjiFlightController_SetBottomLightStatus(bottomModeSelect);
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Set bottom lights status failed, error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("Set bottom lights status success, status: %d", bottomModeSelect);
+            }
+        }
+        s_osalHandler->TaskSleepMs(5000);
+        count--;
+    }
+
+    return returnCode;
+}
+
+T_DjiReturnCode DjiTest_FlightControlGetBatteryCapacityGoHomeCallback(T_DjiFlightControllerBatteryCapacityGohome eventData)
+{
+    USER_LOG_INFO("DjiTest_FlightControlGetBatteryCapacityGoHomeCallback, remain_fly_time = %d, gohome_capacity = %d",
+                   eventData.remain_fly_time, eventData.gohome_capacity);
+}
+void DjiTest_FlightControlGetBatteryCapacityGoHome()
+{
+    T_DjiReturnCode returnCode;
+    USER_LOG_INFO("Flight control GetBatteryCapacityGoHome sample start");
+    returnCode = DjiFlightController_RegisterBatteryCapacityGohomeCallBack(DjiTest_FlightControlGetBatteryCapacityGoHomeCallback);
+    USER_LOG_INFO("RegisterBatteryCapacityGohomeCallBack ret = %d", returnCode);
+
+    s_osalHandler->TaskSleepMs(10000);
+
+    USER_LOG_INFO("Flight control GetBatteryCapacityGoHome sample end");
+    DjiFlightController_AntiRegisterBatteryCapacityGohomeCallBack();
     return;
 }
 
@@ -1196,6 +1401,18 @@ void DjiTest_FlightControlSample(E_DjiTestFlightCtrlSampleSelect flightCtrlSampl
         }
         case E_DJI_TEST_FLIGHT_CTRL_SAMPLE_SELECT_SET_CMD_START_MISSION: {
             DjiTest_FlightControlSetModeStartMission();
+            break;
+        }
+        case E_DJI_TEST_FLIGHT_CTRL_SAMPLE_SELECT_GET_BATTERY_CAPACITY_GOHOME: {
+            DjiTest_FlightControlGetBatteryCapacityGoHome();
+            break;
+        }
+        case E_DJI_TEST_FLIGHT_CTRL_SAMPLE_SELECT_REGISTER_OSD_INFO: {
+            DjiTest_FlightControlRegisterOsdInfoSample();
+            break;
+        }
+        case E_DJI_TEST_FLIGHT_CTRL_SAMPLE_SELECT_STEALTH_MODE: {
+            DjiTest_FlightControlStealthModeSample();
             break;
         }
         default:
@@ -1412,6 +1629,13 @@ bool DjiTest_FlightControlLandFinishedCheck(void)
 {
     while (DjiTest_FlightControlGetValueOfDisplayMode() == DJI_FC_SUBSCRIPTION_DISPLAY_MODE_AUTO_LANDING ||
            DjiTest_FlightControlGetValueOfFlightStatus() == DJI_FC_SUBSCRIPTION_FLIGHT_STATUS_IN_AIR) {
+            if(DjiTest_FlightControlGetValueOfHeightFusion() <= 0.7) {
+                if(DjiFlightController_StartConfirmLanding()!= DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                    USER_LOG_ERROR("Start confirm landing failed");
+                }
+                s_osalHandler->TaskSleepMs(5000);
+                continue;
+            }
         s_osalHandler->TaskSleepMs(1000);
     }
 

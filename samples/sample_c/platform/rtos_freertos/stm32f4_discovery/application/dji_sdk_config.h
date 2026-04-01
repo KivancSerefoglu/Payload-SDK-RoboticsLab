@@ -36,7 +36,7 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 // #define CONFIG_MODULE_SAMPLE_POWER_MANAGEMENT_ON
 
-#define CONFIG_MODULE_SAMPLE_WIDGET_ON
+// #define CONFIG_MODULE_SAMPLE_WIDGET_ON
 
 // #define CONFIG_MODULE_SAMPLE_WIDGET_SPEAKER_ON
 

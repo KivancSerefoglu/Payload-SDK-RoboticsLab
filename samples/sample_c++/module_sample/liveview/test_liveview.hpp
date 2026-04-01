@@ -57,6 +57,8 @@ public:
 
     T_DjiReturnCode StartTopCameraStream(CameraImageCallback callback, void *userData);
     T_DjiReturnCode StopTopCameraStream();
+
+    T_DjiReturnCode StartMainCameraStreamWithStore(CameraImageCallback callback, void *userData);
 };
 
 /* Exported functions --------------------------------------------------------*/

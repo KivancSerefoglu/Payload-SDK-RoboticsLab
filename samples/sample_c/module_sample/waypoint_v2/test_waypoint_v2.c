@@ -30,6 +30,7 @@
 #include "dji_logger.h"
 #include "dji_platform.h"
 #include "math.h"
+#include "dji_aircraft_info.h"
 
 /* Private constants ---------------------------------------------------------*/
 
@@ -92,9 +93,21 @@ T_DjiReturnCode DjiTest_WaypointV2RunSample(void)
     uint16_t missionNum = 8;
     T_DjiWaypointV2GlobalCruiseSpeed setGlobalCruiseSpeed = 0;
     T_DjiWaypointV2GlobalCruiseSpeed getGlobalCruiseSpeed = 0;
+    T_DjiAircraftInfoBaseInfo aircraftInfoBaseInfo;
 
     USER_LOG_INFO("Waypoint V2 sample start");
     DjiTest_WidgetLogAppend("Waypoint V2 sample start");
+
+    returnCode = DjiAircraftInfo_GetBaseInfo(&aircraftInfoBaseInfo);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("get aircraft base info error");
+        return returnCode;
+    }
+
+    if (aircraftInfoBaseInfo.aircraftType != DJI_AIRCRAFT_TYPE_M300_RTK) {
+        USER_LOG_WARN("Waypoint V2 sample only support M300 RTK");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
+    }
 
     USER_LOG_INFO("--> Step 1: Init Waypoint V2 sample");
     DjiTest_WidgetLogAppend("--> Step 1: Init Waypoint V2 sample");

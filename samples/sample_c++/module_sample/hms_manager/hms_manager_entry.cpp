@@ -119,6 +119,11 @@ void DjiUser_RunHmsNetworkSample(void)
     T_DjiReturnCode returnCode = 0;
     E_DjiEnhancedTransmissionState state = DJI_ENHANCEED_TRANSMISSION_STATE_DISABLED;
 
+    returnCode = DjiHmsCustomization_Init();
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Hms init error, error code:0x%08llX", returnCode);
+        return;
+    }
 start:
     osalHandler->TaskSleepMs(100);
 
@@ -153,6 +158,10 @@ start:
             }
             goto start;
         case 'q':
+            returnCode = DjiHmsCustomization_DeInit();
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Hms deinit error, error code:0x%08llX", returnCode);
+            }
             break;
         default:
             USER_LOG_ERROR("Input command is invalid");

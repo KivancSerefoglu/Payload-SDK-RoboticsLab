@@ -26,7 +26,7 @@
 #include "test_liveview.hpp"
 
 /* Private constants ---------------------------------------------------------*/
-
+#define TEST_CAMERA_STREAM_FILE_PATH_STR_MAX_SIZE             256
 /* Private types -------------------------------------------------------------*/
 
 /* Private values -------------------------------------------------------------*/
@@ -34,7 +34,9 @@ std::map<::E_DjiLiveViewCameraPosition, DJICameraStreamDecoder *> streamDecoder;
 
 /* Private functions declaration ---------------------------------------------*/
 static void LiveviewConvertH264ToRgbCallback(E_DjiLiveViewCameraPosition position, const uint8_t *buf, uint32_t bufLen);
-
+static void DjiTest_PayloadCameraStreamCallback(E_DjiLiveViewCameraPosition position, const uint8_t *buf,
+                                                uint32_t bufLen);
+static char CameraStreamFilePath[TEST_CAMERA_STREAM_FILE_PATH_STR_MAX_SIZE];
 /* Exported functions definition ---------------------------------------------*/
 LiveviewSample::LiveviewSample()
 {
@@ -69,6 +71,27 @@ LiveviewSample::~LiveviewSample()
     }
 }
 
+T_DjiReturnCode LiveviewSample::StartMainCameraStreamWithStore(CameraImageCallback callback, void *userData)
+{
+    auto deocder = streamDecoder.find(DJI_LIVEVIEW_CAMERA_POSITION_NO_1);
+    time_t currentTime = time(NULL);
+    struct tm *localTime = NULL;
+
+    localTime = localtime(&currentTime);
+    sprintf(CameraStreamFilePath, "cur_stream_%04d%02d%02d_%02d-%02d-%02d.h264",
+            localTime->tm_year + 1900, localTime->tm_mon + 1, localTime->tm_mday,
+            localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
+
+    if ((deocder != streamDecoder.end()) && deocder->second) {
+        deocder->second->init();
+        deocder->second->registerCallback(callback, userData);
+
+        return DjiLiveview_StartH264Stream(DJI_LIVEVIEW_CAMERA_POSITION_NO_1, DJI_LIVEVIEW_CAMERA_SOURCE_DEFAULT,
+                                           DjiTest_PayloadCameraStreamCallback);
+    } else {
+        return DJI_ERROR_SYSTEM_MODULE_CODE_NOT_FOUND;
+    }
+}
 T_DjiReturnCode LiveviewSample::StartFpvCameraStream(CameraImageCallback callback, void *userData)
 {
     auto deocder = streamDecoder.find(DJI_LIVEVIEW_CAMERA_POSITION_FPV);
@@ -204,6 +227,28 @@ static void LiveviewConvertH264ToRgbCallback(E_DjiLiveViewCameraPosition positio
     if ((deocder != streamDecoder.end()) && deocder->second) {
         deocder->second->decodeBuffer(buf, bufLen);
     }
+}
+
+static void DjiTest_PayloadCameraStreamCallback(E_DjiLiveViewCameraPosition position, const uint8_t *buf,
+                                                uint32_t bufLen)
+{
+    FILE *fp = NULL;
+    size_t size;
+
+    fp = fopen(CameraStreamFilePath, "ab+");
+    if (fp == NULL) {
+        printf("fopen failed!\n");
+        return;
+    }
+
+    size = fwrite(buf, 1, bufLen, fp);
+    if (size != bufLen) {
+        fclose(fp);
+        return;
+    }
+
+    fflush(fp);
+    fclose(fp);
 }
 
 /****************** (C) COPYRIGHT DJI Innovations *****END OF FILE****/

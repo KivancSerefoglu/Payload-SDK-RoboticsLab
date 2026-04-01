@@ -607,6 +607,16 @@ typedef enum {
     DJI_CAMERA_MANAGER_RECORDING_STATE_STOPPING = 3,
 } E_DjiCameraManagerRecordingState;
 
+typedef enum {
+    DJI_CAMERA_SD_CARD_GET_CONTROL_STATUS = 0x20,
+    DJI_CAMERA_SD_CARD_GET_ENCRYPTION_STATUS = 0x21,
+    DJI_CAMERA_SD_CARD_ENCRYPTION = 0x22,
+    DJI_CAMERA_SD_CARD_ENCRYPTION_STATUS = 0x23,
+    DJI_CAMERA_SD_CARD_VERIFY_PASSWORD = 0x24,
+    DJI_CAMERA_SD_CARD_CHANGE_PASSWORD = 0x25,
+    DJI_CAMERA_SD_CARD_ENCRYPTION_DISABLE = 0x27,
+} E_DjiCameraManagerSdCardEncryptionSubcmd;
+
 /*! @brief: when the remote control is in split-screen mode, the coordinate range of the x-axis is 0-0.5.
  */
 typedef struct {
@@ -723,6 +733,12 @@ typedef struct {
     uint32_t crc_rest;
     T_DjiCameraManagerPointXYZRGBInfo points[1];
 }__attribute__((packed)) T_DjiCameraManagerColorPointCloud;
+
+typedef struct {
+    uint8_t work_mode; /*!< refer to E_DjiCameraManagerWorkMode. */
+    uint8_t liveview_source_stream;  /*!< refer to E_DjiCameraManagerStreamSource. */
+    uint16_t zoom_factor; /*!< zoom factor, unit: 0.1, only liveview_source_stream is ZOOM_CAM valid */
+} T_DjiCameraCurrentCameraStatus;
 
 typedef T_DjiReturnCode (*DjiCameraManagerDownloadFileDataCallback)(T_DjiDownloadFilePacketInfo packetInfo,
                                                                     const uint8_t *data,
@@ -1503,6 +1519,101 @@ T_DjiReturnCode DjiCameraManager_ReleaseDownloaderRights(E_DjiMountPosition posi
  */
 T_DjiReturnCode DjiCameraManager_FormatStorage(E_DjiMountPosition position);
 
+/*! @brief This api provides information on the SD card's encryption state.
+ *
+ *  @note This call provides information on the SD card's encryption state.
+ *  1. The returned status includes whether the device is encrypted and if password authentication is needed.
+ *  2. After operating SD card status, wait 6.5s for device data refresh
+ *  3. If the SD card status indicates it is encrypted without requiring verification, it can be used directly without entering a password.
+ *  4. If the SD card status indicates it is encrypted and verification is required,
+ *     you must use the DjiCameraManager_UnlockSdCardPassword function to enter the password for verification,
+ *     otherwise you will not be able to use the SD card normally.
+ *  5. If the SD card status indicates it is not encrypted, you can enable encryption by using the DjiCameraManager_EnableSdCardEncryption interface.
+ *   6. After enabling SD card encryption, the SD card will enter a locked state after each aircraft restart,
+       SD card insertion/removal, or remote controller pairing, Password verification is required to unlock it.
+       Otherwise, the SD card cannot be used normally.
+ *  @param encryptionEnable Specifies the encryption state of the device.
+ *                          1 indicates the device is encrypted, 0 indicates it is not.
+ *  @param needVerify Specifies if password authentication is needed to access the device.
+ *                    1 means verification is required, 0 means it is not.
+ *  @return T_DjiReturnCode error code
+ *  1. If the aircraft model does not support this function, the error code DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT will be returned.
+ */
+T_DjiReturnCode DjiCameraManager_GetSdCardEncryptionStatus(uint8_t *encryptionEnable, uint8_t *needVerify);
+
+/*! @brief This API is used to enable SD card encryption.
+ *
+ *  @note
+ *  1. The following constraints apply to the required password:
+ *    - Must contain only letters (A-Z, a-z) and digits (0-9).
+ *    - Length must be between 6 and 31 characters.
+ *  2. After operating SD card status, wait 7s for device data refresh
+ *  3. A successful function return indicates that the SD card operation is being processed.
+ *     To determine if the operation was successful, you typically need to wait approximately 7 seconds and then query the status by DjiCameraManager_GetSdCardEncryptionStatus.
+ *  4. After enabling SD card encryption, password verification is no longer required. If password verification is performed again, an error will be reported.
+ *  @param password The password string to be set for encryption.
+ *  @return T_DjiReturnCode error code
+ *  1. If the aircraft model does not support this function, the error code DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT will be returned.
+ */
+T_DjiReturnCode DjiCameraManager_EnableSdCardEncryption(const uint8_t *password);
+
+/*! @brief This API is used to disable SD card encryption.
+ *
+ *  @note Warning: This operation formats the SD card. Please operate with caution!
+ *  1. After operating SD card status, wait 6.5s for device data refresh.
+ *  2. A successful function return indicates that the SD card operation is being processed.
+ *     To determine if the operation was successful, you typically need to wait approximately 6.5 seconds and then query the status by DjiCameraManager_GetSdCardEncryptionStatus.
+ *  3. This operation formats the SD card. Please operate with caution!
+ *  @return T_DjiReturnCode error code
+ *  1. If the aircraft model does not support this function, the error code DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT will be returned.
+ */
+T_DjiReturnCode DjiCameraManager_DisableSdCardEncryption(void);
+
+/*! @brief This API is used to enable SD card encryption.
+ *
+ *  @note
+ *  1. The following constraints apply to the required password:
+ *    - Must contain only letters (A-Z, a-z) and digits (0-9).
+ *    - Length must be between 6 and 31 characters.
+ *  2. After operating SD card status, wait 6.5s for device data refresh.
+ *  3. A successful function return indicates that the SD card operation is being processed.
+ *     To determine if the operation was successful, you typically need to wait approximately 6.5 seconds and then query the status by DjiCameraManager_GetSdCardEncryptionStatus.
+ *  @param password The password string to be set for unlock sd card.
+ *  @return T_DjiReturnCode error code
+ *  1. If the aircraft model does not support this function, the error code DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT will be returned.
+ */
+T_DjiReturnCode DjiCameraManager_UnlockSdCardPassword(const uint8_t *password);
+
+/*! @brief This API is used to enable SD card encryption.
+ *
+ *  @note
+ *  1. The following constraints apply to the required password:
+ *    - Must contain only letters (A-Z, a-z) and digits (0-9).
+ *    - Length must be between 6 and 31 characters.
+ *  2. After operating SD card status, wait 6.5s for device data refresh.
+ *  3. The new password cannot be identical to the old one.
+*   4. If the password is changed, the SD card needs to be reinserted or the aircraft needs to be restarted.
+       Then, use DjiCameraManager_UnlockSdCardPassword to verify whether the password change was successful.
+ *  5. A successful function return indicates that the SD card operation is being processed.
+ *     To determine if the operation was successful, you typically need to wait approximately 6.5 seconds and then query the status by DjiCameraManager_GetSdCardEncryptionStatus.
+ *  @param old_password The old_password string to be set for change password.
+ *  @param new_password The new_password string to be set for change password.
+ *  @return T_DjiReturnCode error code
+ *  1. If the aircraft model does not support this function, the error code DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT will be returned.
+ */
+T_DjiReturnCode DjiCameraManager_ChangeSdCardPassword(const uint8_t *old_password, const uint8_t *new_password);
+
+/*! @brief This API is used to enable SD card encryption.
+ *
+ *  @note The following constraints apply to check sd card status.
+ *  @param cmd This parameter specifies the operation to query and must be one of the values from the E_DjiCameraManagerSdCardEncryptionSubcmd enumeration.
+ *  @param status This parameter will store the queried status.
+ *  @return T_DjiReturnCode error code
+ *  1. If the aircraft model does not support this function, the error code DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT will be returned.
+ */
+T_DjiReturnCode DjiCameraManager_checkSdCardCmdStatus(E_DjiCameraManagerSdCardEncryptionSubcmd cmd,
+                                                            uint8_t *status);
+
 /**
  * @brief Get storage info of SD card.
  * @note This API doesn't support L1/P1/M3D/M3TD models.
@@ -1698,6 +1809,14 @@ T_DjiReturnCode DjiCameraManager_StartRecordPointCloud(E_DjiMountPosition positi
  */
 T_DjiReturnCode DjiCameraManager_StopRecordPointCloud(E_DjiMountPosition position);
 
+/**
+ * @brief Get current camera status.
+ * @param position: camera mounted position
+ * @param status: returned value of current camera status.
+ * @return Execution result.
+ */
+T_DjiReturnCode DjiCameraManager_GetCurrentCameraStatus(E_DjiMountPosition position,
+                                                           T_DjiCameraCurrentCameraStatus *status);
 #ifdef __cplusplus
 }
 #endif
