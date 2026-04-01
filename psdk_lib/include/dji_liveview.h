@@ -125,6 +125,24 @@ typedef enum {
 } E_DjiLiveViewTargetObjectState;
 
 /**
+ * @brief Target Liveview Codec Type.
+ */
+typedef enum {
+    DJI_LIVEVIEW_CODEC_STRATEGY_ONDEMAND_I = 0,   /*!< onmandi codec */
+    DJI_LIVEVIEW_CODEC_STRATEGY_GDR = 1,          /*!< gdr codec */
+    DJI_LIVEVIEW_CODEC_STRATEGY_PERIOD_I = 2,     /*!< periodi codec */
+    DJI_LIVEVIEW_CODEC_STRATEGY_UNKNOWN = 255,    /*!< unknown codec */
+} E_DjiLiveViewCodecStrategy;
+
+/**
+ * @brief Native Stream Config Status.
+ */
+typedef enum {
+    DJI_LIVEVIEW_HDVT_SDR_MODE_NORMAL = 0,               /*!< normal mode */
+    DJI_LIVEVIEW_HDVT_SDR_MODE_SILENCE_ALL = 2,          /*!< 2.4g and 5.8g silenece all */
+} E_DjiLiveViewHdvtSdrMode;
+
+/**
  * @brief Picture frame information for target recognition results
  */
 typedef struct
@@ -165,6 +183,14 @@ typedef struct {
 } T_DjiLiveviewImageInfo;
 
 /**
+ * @brief Liveview Bitrate and Strategy information.
+ */
+typedef struct{
+    E_DjiLiveViewCodecStrategy strategy;	    /*!< state should be of type E_DjiLiveViewCodecStrategy enumeration */
+    int16_t bitrate_kbps;                       /*!< set the target bitrate, unit: Kbps */
+} T_DjiLiveviewCodecParamItem;
+
+/**
  * @brief Liveview camera h264 stream callback.
  */
 typedef void (*DjiLiveview_H264Callback)(E_DjiLiveViewCameraPosition position, const uint8_t *buf, uint32_t len);
@@ -192,6 +218,24 @@ T_DjiReturnCode DjiLiveview_Init(void);
  * @return Execution result.
  */
 T_DjiReturnCode DjiLiveview_Deinit(void);
+
+
+/**
+ * @brief Config the camera stream encoding strategy.
+ * @note
+ * Recommended call sequence:
+ * 1. Call DjiLiveview_StartH264Stream() before calling this function.
+ * 2. If state callback reports success, call DjiLiveview_SetEncodingStrategy().
+ * 3. The configurable bitrate limits for different video streams and resolutions may vary.
+ * 4. The actual bitrate may fluctuate by up to 20% above the configured bitrate, and the lower limit of the actual bitrate also depends on the captured image.
+ * @param position: Camera position for the H264 stream output to set the encoding strategy.
+ * @param source: sub-camera source for the H264 stream output.
+ * @param bitrate_kbps: The target bitrate, unit: Kbps. For the wa345, the recommended bitrate range for H264 at 1440x1080 resolution is 12 Mbps to 20 Mbps.
+ * @param strategy: camera codec strategy, state should be of type E_DjiLiveViewSetParamType enumeration
+ * @return Execution result. If the model is not supported, `DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT` will be returned.
+ */
+T_DjiReturnCode DjiLiveview_SetEncodingStrategy(E_DjiLiveViewCameraPosition position, E_DjiLiveViewCameraSource source,
+                                                const T_DjiLiveviewCodecParamItem *codec_param);
 
 /**
  * @brief Start the FPV or camera H264 stream from the specified position.
@@ -294,6 +338,18 @@ T_DjiReturnCode DjiLiveview_UnregUserAiTargetLableList();
  */
 T_DjiReturnCode DjiLiveview_SendAiMetaToPilot(T_DjiLiveViewStandardMetaData *metaData);
 
+/**
+ * @brief Stop the native liveview stream.
+ * @note This interface only supported on M4T.
+ * Recommended call sequence:
+ * 1. The aircraft will restore to the default open native DJI liveview transmission state after reboot.
+ * @param nativeLiveviewConfig: Configuration value for native liveview stream
+ *        - 2: Silent mode - Control the sky to silence the liveview transmission,
+ *             and disable the DJI native liveview transmission.
+ *        - 0: Normal mode - Enable the default DJI native liveview transmission.
+ * @return Execution result.
+ */
+T_DjiReturnCode DjiLiveview_SetHdvtSdrMode(E_DjiLiveViewHdvtSdrMode nativeLiveviewConfig);
 
 #ifdef __cplusplus
 }

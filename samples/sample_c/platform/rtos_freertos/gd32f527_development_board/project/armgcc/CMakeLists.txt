@@ -80,6 +80,7 @@ include_directories (
     ../../../../../../../modules/authentication
     ../../../../../../../modules/authentication/ciu98
     ../../../../../../../modules/network_rtk/include
+    ../../../../../../../modules/hoist_controller/include
     ../../../../../../../modules/fts/include
     ../../drivers/CMSIS/include
     ../../drivers/CMSIS/GD/GD32F5xx/Include

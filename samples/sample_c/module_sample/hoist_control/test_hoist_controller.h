@@ -1,10 +1,10 @@
 /**
  ********************************************************************
- * @file    test_raspberry_pi_camera.h
- * @brief   This is the header file for "test_raspberry_pi_camera.c", defining the structure and
+ * @file    test_hoist_contorller.h
+ * @brief   This is the header file for "test_hoist_contorller.c", defining the structure and
  * (exported) function prototypes.
  *
- * @copyright (c) 2021 DJI. All rights reserved.
+ * @copyright (c) 2025 DJI. All rights reserved.
  *
  * All information contained herein is, and remains, the property of DJI.
  * The intellectual and technical concepts contained herein are proprietary
@@ -24,32 +24,30 @@
  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef TEST_RASPBERRY_PI_CAMERA_H
-#define TEST_RASPBERRY_PI_CAMERA_H
+#ifndef HOIST_CONTROLLER_H
+#define HOIST_CONTROLLER_H
 
 /* Includes ------------------------------------------------------------------*/
 #include "dji_typedef.h"
-#include "dji_payload_camera.h"
+#include "dji_psdk_hoist_controller.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Exported constants --------------------------------------------------------*/
-// Use Raspberry Pi Camera Module V2 to show live view on Pilot. Enable this macro to activate the feature.
-#define USE_RASPBERRY_PI_CAMERA 0
+
+
 /* Exported types ------------------------------------------------------------*/
 
 /* Exported functions --------------------------------------------------------*/
-T_DjiReturnCode DjiTest_RaspberryPiCameraInit();
-void DjiTest_RaspberryPiCameraTakePhoto();
-void DjiTest_RaspberryPiRecordingAction(bool action);
-void DjiTest_RaspberryPiCameraLiveviewStatSet(bool liveviewState);
-void DjiTest_RaspberryPiCameraLiveviewStatGet(bool *liveviewState);
+T_DjiReturnCode DjiTest_HoistControllerStartService(void);
+T_DjiReturnCode DjiTest_HoistControllerStopService(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // TEST_RASPBERRY_PI_CAMERA_H
+#endif // HOIST_CONTROLLER_H
+
 /************************ (C) COPYRIGHT DJI Innovations *******END OF FILE******/

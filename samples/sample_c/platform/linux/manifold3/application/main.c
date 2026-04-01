@@ -435,7 +435,7 @@ static T_DjiReturnCode DjiUser_FillInUserInfo(T_DjiUserInfo *userInfo)
         !strcmp(USER_DEVELOPER_ACCOUNT, "your_developer_account") ||
         !strcmp(USER_BAUD_RATE, "your_baud_rate")) {
         USER_LOG_ERROR(
-            "Please fill in correct user information to 'samples/sample_c/platform/linux/nvidia_jetson/application/dji_sdk_app_info.h' file.");
+            "Please fill in correct user information to 'samples/sample_c/platform/linux/manifold3/application/dji_sdk_app_info.h' file.");
         sleep(1);
         return DJI_ERROR_SYSTEM_MODULE_CODE_INVALID_PARAMETER;
     }

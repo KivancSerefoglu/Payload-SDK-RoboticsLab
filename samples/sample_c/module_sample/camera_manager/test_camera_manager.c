@@ -2071,6 +2071,7 @@ T_DjiReturnCode DjiTest_CameraManagerRunSample(E_DjiMountPosition mountPosition,
         case E_DJI_TEST_CAMERA_MANAGER_SAMPLE_SELECT_GET_CAMERA_STATUS: {
             E_DjiCameraManagerCapturingState capturingState;
             E_DjiCameraManagerRecordingState recordingState;
+            T_DjiCameraCurrentCameraStatus cameraStatus;
             uint16_t recordingTime;
             uint8_t remainingTime;
 
@@ -2105,11 +2106,19 @@ T_DjiReturnCode DjiTest_CameraManagerRunSample(E_DjiMountPosition mountPosition,
                     goto exitCameraModule;
                 }
 
+                returnCode = DjiCameraManager_GetCurrentCameraStatus(mountPosition, &cameraStatus);
+                if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                    USER_LOG_INFO("Get camera status failed!");
+                    goto exitCameraModule;
+                }
+
                 USER_LOG_INFO("cap_state: %d, rec_state: %d, rec_time: %d, cap_remain: %d",
                             capturingState,
                             recordingState,
                             recordingTime,
                             remainingTime);
+                USER_LOG_INFO("workmode: %d, source_stream: %d, zoom_factor: %d",
+                            cameraStatus.work_mode, cameraStatus.liveview_source_stream, cameraStatus.zoom_factor);
 
                 osalHandler->TaskSleepMs(200);
             }
@@ -2127,6 +2136,14 @@ T_DjiReturnCode DjiTest_CameraManagerRunSample(E_DjiMountPosition mountPosition,
             break;
         }
 #endif
+        case E_DJI_TEST_CAMERA_MANAGER_SAMPLE_SELECT_ENCRYPTION_SD_CARD: {
+            returnCode = DjiTest_CameraManagerSdCardEncryptionSample();
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Fail to test sd card encryption. Error code %llu", returnCode);
+                goto exitCameraModule;
+            }
+            break;
+        }
         default: {
             USER_LOG_ERROR("There is no valid command input!");
             break;
@@ -2728,5 +2745,246 @@ RECONNECT:
     return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
 }
 #endif
+
+T_DjiReturnCode DjiTest_CameraManagerSdCardEncryptionSample(void)
+{
+    T_DjiReturnCode returnCode;
+    T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
+    char passWord[63] = {0};
+    char oldPassWord[63] = {0};
+    int retryCount = 3;
+    uint8_t encryptionStatus = 0;
+    uint8_t verifyStatus = 0;
+    uint8_t operationType = 0;
+    uint8_t status = 0;
+
+    USER_LOG_INFO("Sd card encryption sample start");
+    DjiTest_WidgetLogAppend("Sd card encryption sample start");
+    USER_LOG_WARN("===============================================");
+    USER_LOG_WARN("SD CARD ENCRYPTION - SECURITY REMINDER");
+    USER_LOG_WARN("===============================================");
+    USER_LOG_WARN("1. If SD card encryption is enabled, after rebooting the aircraft or replugging the SD card,");
+    USER_LOG_WARN("   you must re-run this sample to input the SD card password, otherwise you cannot open the SD card.");
+    USER_LOG_WARN("2. If you forget the SD card password, there is no method to retrieve it,");
+    USER_LOG_WARN("   only formatting the SD card can solve the problem. Please be cautious.");
+    USER_LOG_WARN("3. SD card encryption does not support password re-validation");
+    USER_LOG_WARN("4. Password verification is not required after setting or changing password; otherwise, an error will occur");
+    USER_LOG_WARN("5. After operating SD card status, wait 6.5s for device data refresh");
+    USER_LOG_WARN("6. If the password is changed, the SD card needs to be reinserted or the aircraft needs to be restarted. "
+                      "Then, use DjiCameraManager_UnlockSdCardPassword to verify whether the password change was successful.");
+    USER_LOG_WARN("7. DjiCameraManager_DisableSdCardEncryption formats the SD card. Please use with caution.");
+    USER_LOG_WARN("===============================================");
+
+    returnCode = DjiCameraManager_GetSdCardEncryptionStatus(&encryptionStatus, &verifyStatus);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Get sd card encryption status failed, error code: %llu", returnCode);
+    }
+
+    if (verifyStatus) {
+        USER_LOG_INFO("--> Unlock the sd card");
+        DjiTest_WidgetLogAppend("--> Unlock the sd card");
+        while (retryCount--) {
+            USER_LOG_INFO("--> Please enter sd card password: ");
+            if (scanf("%63s", passWord) != 1) {
+                USER_LOG_ERROR("Invalid input, failed to read password");
+                continue;
+            }
+
+            returnCode = DjiCameraManager_UnlockSdCardPassword(passWord);
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("sd card password verification failed. "
+                            "Please unlock that the entered user ID and password are correct. Error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("--> Wating for sd card password verification");
+                osalHandler->TaskSleepMs(6500);
+                returnCode = DjiCameraManager_checkSdCardCmdStatus(DJI_CAMERA_SD_CARD_VERIFY_PASSWORD, &status);
+                if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                    USER_LOG_ERROR("check sd card cmd status, error code: %llu.", returnCode);
+                }else if (status) {
+                    USER_LOG_ERROR("unlock sd card encryption error");
+                } else {
+                    USER_LOG_INFO("--> Sd card password verification success");
+                    break;
+                }
+            }
+        }
+    }
+
+    USER_LOG_INFO("--> Please select the operation you want to perform");
+    USER_LOG_INFO("--> 1. Enable encryption  2. Unlock password  3. Change password  4. Disable encryption");
+    DjiTest_WidgetLogAppend("--> Please select the operation you want to perform");
+    DjiTest_WidgetLogAppend("--> 1. Enable encryption  2. Unlock password  3. Change password  4. Disable encryption");
+    scanf("%d", &operationType);
+    switch (operationType) {
+        case 1:
+            USER_LOG_INFO("--> Enable sd card encryption");
+            DjiTest_WidgetLogAppend("--> Enable sd card encryption");
+            retryCount = 3;
+            while (retryCount--) {
+                USER_LOG_INFO("--> Please enter the password you would like to set: ");
+                USER_LOG_INFO("Password requirements: 6-31 characters, only uppercase/lowercase letters and digits allowed.");
+                if (scanf("%63s", oldPassWord) != 1) {
+                    USER_LOG_ERROR("Invalid input, failed to read password");
+                    continue;
+                }
+
+                USER_LOG_INFO("--> Please enter your password again: ");
+                if (scanf("%63s", passWord) != 1) {
+                    USER_LOG_ERROR("Invalid input, failed to read password");
+                    continue;
+                }
+
+                if (strcmp(oldPassWord, passWord) != 0) {
+                    USER_LOG_ERROR("Passwords do not match. Please re-enter the same password in both fields.");
+                    continue;
+                }
+
+                returnCode = DjiCameraManager_EnableSdCardEncryption(passWord);
+                if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                    USER_LOG_ERROR("Enable sd card encryption failed, error code: %llu", returnCode);
+                } else {
+                    USER_LOG_INFO("--> Wating for sd card enable sd card encryption");
+                    osalHandler->TaskSleepMs(7000);
+                    returnCode = DjiCameraManager_checkSdCardCmdStatus(DJI_CAMERA_SD_CARD_ENCRYPTION, &status);
+                    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                        USER_LOG_ERROR("check sd card cmd status, error code: %llu.", returnCode);
+                    } else if (status == 0) {
+                        USER_LOG_ERROR("enable sd card encryption error");
+                    } else {
+                        break;
+                    }
+                }
+            }
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Enable sd card Encryption failed. Error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("Enable sd card encryption success.");
+                USER_LOG_INFO("SD card encryption is now enabled - please note the security requirements");
+            }
+            break;
+
+        case 2:
+            USER_LOG_INFO("--> Unlock sd card\r\n");
+            DjiTest_WidgetLogAppend("--> Unlock sd card\r\n");
+            retryCount = 3;
+            while (retryCount--) {
+                memset(passWord, 0, sizeof(passWord));
+                USER_LOG_INFO("--> Please enter password: ");
+                USER_LOG_INFO("Password requirements: 6-31 characters, only uppercase/lowercase letters and digits allowed.");
+                if (scanf("%63s", passWord) != 1) {
+                    USER_LOG_ERROR("Invalid input, failed to read password");
+                    continue;
+                }
+
+                returnCode = DjiCameraManager_UnlockSdCardPassword(passWord);
+                if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                    USER_LOG_ERROR("Sd card password verification failed. "
+                                "Please verify that the entered user ID and password are correct. Error code: %llu", returnCode);
+                } else {
+                    USER_LOG_INFO("--> Wating for sd card password verification");
+                    osalHandler->TaskSleepMs(6500);
+                    returnCode = DjiCameraManager_checkSdCardCmdStatus(DJI_CAMERA_SD_CARD_VERIFY_PASSWORD, &status);
+                    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                        USER_LOG_ERROR("Check sd card cmd status, error code: %llu.", returnCode);
+                    }else if (status) {
+                        USER_LOG_ERROR("Unlock sd card encryption error");
+                    } else {
+                        USER_LOG_INFO("--> Sd card password unlock success");
+                        break;
+                    }
+                }
+            }
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Unlock sd card Encryption failed. Error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("Unlock sd card encryption success.");
+            }
+            break;
+
+        case 3:
+            USER_LOG_INFO("--> Change password\r\n");
+            DjiTest_WidgetLogAppend("--> Change password\r\n");
+            retryCount = 3;
+            while (retryCount--) {
+                memset(passWord, 0, sizeof(passWord));
+                memset(oldPassWord, 0, sizeof(oldPassWord));
+                USER_LOG_INFO("--> Please enter old password: ");
+                USER_LOG_INFO("Password requirements: 6-31 characters, only uppercase/lowercase letters and digits allowed.");
+                if (scanf("%63s", oldPassWord) != 1) {
+                    USER_LOG_ERROR("Invalid input, failed to read password");
+                    continue;
+                }
+
+                USER_LOG_INFO("--> Please enter your new password: ");
+                USER_LOG_INFO("Password requirements: 6-31 characters, only uppercase/lowercase letters and digits allowed.");
+                if (scanf("%63s", passWord) != 1) {
+                    USER_LOG_ERROR("Invalid input, failed to read password");
+                    continue;
+                }
+
+                returnCode = DjiCameraManager_ChangeSdCardPassword(oldPassWord, passWord);
+                if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                    USER_LOG_ERROR("Change sd card password failed. "
+                                "Please verify that the entered user ID and password are correct. Error code: %llu", returnCode);
+                } else {
+                    USER_LOG_INFO("--> Wating for changing sd card password");
+                    osalHandler->TaskSleepMs(6500);
+                    returnCode = DjiCameraManager_checkSdCardCmdStatus(DJI_CAMERA_SD_CARD_CHANGE_PASSWORD, &status);
+                    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                        USER_LOG_ERROR("Check sd card cmd status, error code: %llu.", returnCode);
+                    }else if (status) {
+                        USER_LOG_ERROR("Change sd card encryption error");
+                    } else {
+                        USER_LOG_INFO("After changing the password, you need to reinsert the SD card or restart the aircraft. "
+                                    "Verify the password change using the DjiCameraManager_UnlockSdCardPassword interface.");
+                        break;
+                    }
+                }
+            }
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Change sd card password failed. Error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("After changing the password, you need to reinsert the SD card or restart the aircraft. "
+                                    "Verify the password change using the DjiCameraManager_UnlockSdCardPassword interface.");
+            }
+            break;
+
+        case 4:
+            USER_LOG_INFO("--> Disable sd card encryption");
+            DjiTest_WidgetLogAppend("--> Disable sd card encryption");
+            retryCount = 3;
+            while (retryCount--) {
+                returnCode = DjiCameraManager_DisableSdCardEncryption();
+                if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                    USER_LOG_ERROR("Disable sd card encryption failed. "
+                                "Please verify that the entered user ID and password are correct. Error code: %llu", returnCode);
+                } else {
+                    USER_LOG_INFO("--> Wating for disable sd card password");
+                    osalHandler->TaskSleepMs(6500);
+                    returnCode = DjiCameraManager_checkSdCardCmdStatus(DJI_CAMERA_SD_CARD_ENCRYPTION_DISABLE, &status);
+                    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                        USER_LOG_ERROR("Check sd card cmd status, error code: %llu.", returnCode);
+                    }else if (status) {
+                        USER_LOG_ERROR("Disable sd card encryption error");
+                    } else {
+                        USER_LOG_INFO("--> Disable sd card password success");
+                        break;
+                    }
+                }
+            }
+
+            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Disable sd card encryption failed. Error code: %llu", returnCode);
+            } else {
+                USER_LOG_INFO("Disable sd card encryption success.");
+            }
+            break;
+
+        default:
+            USER_LOG_ERROR("Invalid input, please enter a number between 1 and 4.");
+            break;
+    }
+    return returnCode;
+}
 
 /****************** (C) COPYRIGHT DJI Innovations *****END OF FILE****/

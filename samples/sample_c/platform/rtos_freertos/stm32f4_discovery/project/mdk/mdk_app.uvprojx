@@ -1055,6 +1055,11 @@
 </File>
 <File>
 <FileType>5</FileType>
+<FileName>dji_psdk_hoist_controller.h</FileName>
+<FilePath>..\..\..\..\..\..\..\psdk_lib\include\dji_psdk_hoist_controller.h</FilePath>
+</File>
+<File>
+<FileType>5</FileType>
 <FileName>dji_ringbuffer.h</FileName>
 <FilePath>..\..\drivers\BSP\dji_ringbuffer.h</FilePath>
 </File>

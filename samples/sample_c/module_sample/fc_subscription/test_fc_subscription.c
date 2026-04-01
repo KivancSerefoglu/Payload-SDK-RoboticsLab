@@ -32,7 +32,7 @@
 
 /* Private constants ---------------------------------------------------------*/
 #define FC_SUBSCRIPTION_TASK_FREQ         (1)
-#define FC_SUBSCRIPTION_TASK_STACK_SIZE   (2048)
+#define FC_SUBSCRIPTION_TASK_STACK_SIZE   (1024)
 
 /* Private types -------------------------------------------------------------*/
 
@@ -114,6 +114,8 @@ T_DjiReturnCode DjiTest_FcSubscriptionRunSample(void)
     T_DjiDataTimestamp timestamp = {0};
     T_DjiFcSubscriptionGpsPosition gpsPosition = {0};
     T_DjiFcSubscriptionSingleBatteryInfo singleBatteryInfo = {0};
+    T_DjiFcSubscriptionGpsDate gpsData = {0};
+    T_DjiFcSubscriptionGpsTime gpsTime = {0};
 
     USER_LOG_INFO("Fc subscription sample start");
     s_userFcSubscriptionDataShow = true;
@@ -145,6 +147,24 @@ T_DjiReturnCode DjiTest_FcSubscriptionRunSample(void)
     if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("Subscribe topic gps position error.");
         return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    }
+
+    djiStat = DjiFcSubscription_SubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_TIME, DJI_DATA_SUBSCRIPTION_TOPIC_1_HZ,
+                                               NULL);
+    if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Subscribe topic gpstimes error.");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    } else {
+        USER_LOG_INFO("Subscribe topic gpstimes success.");
+    }
+
+    djiStat = DjiFcSubscription_SubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_DATE, DJI_DATA_SUBSCRIPTION_TOPIC_1_HZ,
+                                               NULL);
+    if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Subscribe topic gpsdata error.");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    } else {
+        USER_LOG_INFO("Subscribe topic gpsdata success.");
     }
 
     USER_LOG_INFO("--> Step 3: Get latest value of the subscribed topics in the next 10 seconds\r\n");
@@ -202,9 +222,30 @@ T_DjiReturnCode DjiTest_FcSubscriptionRunSample(void)
                 singleBatteryInfo.currentVoltage / 1000,
                 (dji_f32_t) singleBatteryInfo.batteryTemperature / 10);
         }
+
+        USER_LOG_INFO("--> Step 4: subscription gps data and time");
+        djiStat = DjiFcSubscription_GetLatestValueOfTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_TIME,
+                                                          (uint8_t *) &gpsTime,
+                                                          sizeof(T_DjiFcSubscriptionGpsTime),
+                                                          &timestamp);
+        if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("get value of topic gps times error.");
+        } else {
+            USER_LOG_INFO("gps times = %d ", gpsTime);
+        }
+
+        djiStat = DjiFcSubscription_GetLatestValueOfTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_DATE,
+                                                          (uint8_t *) &gpsData,
+                                                          sizeof(T_DjiFcSubscriptionGpsDate),
+                                                          &timestamp);
+        if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("get value of topic gps data error.");
+         } else {
+            USER_LOG_INFO("gps data = %d ", gpsData);
+        }
     }
 
-    USER_LOG_INFO("--> Step 4: Unsubscribe the topics of quaternion, velocity and gps position");
+    USER_LOG_INFO("--> Step 5: Unsubscribe the topics of quaternion, velocity and gps position and gps times");
     djiStat = DjiFcSubscription_UnSubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_QUATERNION);
     if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("UnSubscribe topic quaternion error.");
@@ -220,6 +261,18 @@ T_DjiReturnCode DjiTest_FcSubscriptionRunSample(void)
     djiStat = DjiFcSubscription_UnSubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_POSITION);
     if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("UnSubscribe topic quaternion error.");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    }
+
+    djiStat = DjiFcSubscription_UnSubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_TIME);
+    if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("UnSubscribe topic gpstimes error.");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    }
+
+    djiStat = DjiFcSubscription_UnSubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_DATE);
+    if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("UnSubscribe topic gpstimes error.");
         return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
     }
 

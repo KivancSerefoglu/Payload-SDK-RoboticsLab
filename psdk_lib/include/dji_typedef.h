@@ -117,6 +117,7 @@ typedef enum {
     DJI_AIRCRAFT_SERIES_M4                      = 8,
     DJI_AIRCRAFT_SERIES_M4D                     = 9,
     DJI_AIRCRAFT_SERIES_M400                    = 10,
+    DJI_AIRCRAFT_SERIES_FC100                   = 11,
 } E_DjiAircraftSeries;
 
 typedef enum {
@@ -139,6 +140,7 @@ typedef enum {
     DJI_AIRCRAFT_TYPE_M4TD                      = 100, /*!< Aircraft type is Matrice 4TD. */
     DJI_AIRCRAFT_TYPE_M4D                       = 1000, /*!< Aircraft type is Matrice 4D. */
     DJI_AIRCRAFT_TYPE_M400                      = 103, /*!< Aircraft type is Matrice 400. */
+    DJI_AIRCRAFT_TYPE_FC100                     = 122, /* !<Aircraft type is FlyCart 100> */
 } E_DjiAircraftType;
 
 /**
@@ -303,6 +305,14 @@ typedef enum {
     DJI_CHANNEL_ADDRESS_SLAVE_RC_APP,
     DJI_CHANNEL_ADDRESS_CLOUD_API,
 } E_DjiChannelAddress;
+
+/**
+ * @brief SDK sub device type.
+ */
+typedef enum {
+    DJI_SDK_DEVICE_TYPE_UNKNOWN             = 0, /*!< SDK device type is unknown. */
+    DJI_SDK_DEVICE_TYPE_TRANSPORT_BOX       = 140, /*!< SDK  device type is transport box. */
+} E_DjiSdkDeviceType;
 
 /**
  * @brief Camera focus target point when in focus mode.

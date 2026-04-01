@@ -610,14 +610,11 @@ static void DjiLiveview_RcvImageCallback(E_DjiLiveViewCameraPosition position, c
 static void DjiLiveview_EncoderUseCallback(const uint8_t *buf, uint32_t len)
 {
     T_DjiReturnCode returnCode;
-    outH264Tofile(buf, len);
-    if (aircraftInfoBaseInfo.aircraftSeries != DJI_AIRCRAFT_SERIES_M4D)
+    //outH264Tofile(buf, len);
+    returnCode = DjiPayloadCamera_SendVideoStream(buf, len);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
     {
-        returnCode = DjiPayloadCamera_SendVideoStream(buf, len);
-        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-        {
-            USER_LOG_ERROR("failed to send video to pilot, ret: 0x%08llX", returnCode);
-        }
+        USER_LOG_ERROR("failed to send video to pilot, ret: 0x%08llX", returnCode);
     }
 }
 
@@ -632,6 +629,11 @@ static void* DjiLiveview_ObjectDetectionThread(void *arg) {
             osalHandler->MutexUnlock(s_imageQueueMutexHandle);
             continue;
         }
+
+        while(s_imageQueue.size() >1 ) {
+            s_imageQueue.pop();
+        }
+
         cv::Mat rgb_image = s_imageQueue.front();
         s_imageQueue.pop();
         osalHandler->MutexUnlock(s_imageQueueMutexHandle);

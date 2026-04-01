@@ -54,6 +54,7 @@
 #include "widget_interaction_test/test_widget_interaction.h"
 #include "data_transmission/test_data_transmission.h"
 #include "dji_sdk_config.h"
+#include <hoist_control/test_hoist_controller.h>
 
 /* Private constants ---------------------------------------------------------*/
 #define DJI_LOG_PATH                    "Logs/DJI"
@@ -182,6 +183,15 @@ int main(int argc, char **argv)
     returnCode = DjiTest_PowerManagementStartService();
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("power management init error");
+    }
+#endif
+
+#ifdef CONFIG_MODULE_SAMPLE_HOIST_CONTROLLER_ON
+    returnCode = DjiTest_HoistControllerStartService();
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("hoist controller sample init error");
+    } else {
+        USER_LOG_INFO("hoist controller sample init succ");
     }
 #endif
 
@@ -527,6 +537,13 @@ static T_DjiReturnCode DjiUser_CleanSystemEnvironment(void)
     returnCode = DjiTest_PowerManagementStopService();
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         perror("power management deinit error");
+    }
+#endif
+
+#ifdef CONFIG_MODULE_SAMPLE_HOIST_CONTROLLER_ON
+    returnCode = DjiTest_HoistControllerStopService();
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        perror("hoist controller sample deinit error");
     }
 #endif
 

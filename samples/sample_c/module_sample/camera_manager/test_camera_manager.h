@@ -72,6 +72,7 @@ typedef enum {
     E_DJI_TEST_CAMERA_MANAGER_SAMPLE_SELECT_SET_GAIN_MODE,
     E_DJI_TEST_CAMERA_MANAGER_SAMPLE_SELECT_GET_CAMERA_STATUS,
     E_DJI_TEST_CAMERA_MANAGER_SAMPLE_SELECT_SUBSCRIBE_POINT_CLOUD,
+    E_DJI_TEST_CAMERA_MANAGER_SAMPLE_SELECT_ENCRYPTION_SD_CARD,
     E_DJI_TEST_CAMERA_MANAGER_SAMPLE_SELECT_INDEX_MAX
 } E_DjiTestCameraManagerSampleSelect;
 /* Exported functions --------------------------------------------------------*/
@@ -262,6 +263,21 @@ T_DjiReturnCode DjiTest_CameraManagerStartRecordVideo(E_DjiMountPosition positio
  *  @return T_DjiReturnCode error code
  */
 T_DjiReturnCode DjiTest_CameraManagerStopRecordVideo(E_DjiMountPosition position);
+
+/*! @brief Sample to stop record video, using async api
+ *
+ *  @note
+ *  1. If SD card encryption is enabled, after rebooting the aircraft or replugging the SD card,
+ *     you must re-run this sample to input the SD card password, otherwise you cannot open the SD card.
+ *  2. If you forget the SD card password, there is no method to retrieve it,
+ *     only formatting the SD card can solve the problem. Please be cautious.
+ *  3. SD card encryption does not support password re-validation
+ *  4. Password verification is not required after setting or changing password; otherwise, an error will occur");
+ *  5. After operating SD card status, wait 6.5s for device data refresh
+ *  @return T_DjiReturnCode error code
+ *  1. If the aircraft model does not support this function, the error code DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT will be returned.
+ */
+T_DjiReturnCode DjiTest_CameraManagerSdCardEncryptionSample(void);
 
 T_DjiReturnCode DjiTest_CameraManagerRunSample(E_DjiMountPosition mountPosition,
                                                E_DjiTestCameraManagerSampleSelect cameraManagerSampleSelect);

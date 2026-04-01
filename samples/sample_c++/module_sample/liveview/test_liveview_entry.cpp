@@ -40,7 +40,7 @@ using namespace cv;
 using namespace std;
 
 /* Private constants ---------------------------------------------------------*/
-
+#define TEST_CAMERA_STREAM_STROING_TIME_IN_SECONDS            20
 /* Private types -------------------------------------------------------------*/
 
 /* Private values -------------------------------------------------------------*/
@@ -70,6 +70,8 @@ char weightsFileDirPath[DJI_FILE_PATH_SIZE_MAX];
 /* Private functions declaration ---------------------------------------------*/
 static void DjiUser_ShowRgbImageCallback(CameraRGBImage img, void *userData);
 static T_DjiReturnCode DjiUser_GetCurrentFileDirPath(const char *filePath, uint32_t pathBufferSize, char *dirPath);
+static void DjiUser_StoreCurrentStreamCallback(E_DjiLiveViewCameraPosition position, const uint8_t *buf,
+                                                uint32_t bufLen);
 
 /* Exported functions definition ---------------------------------------------*/
 void DjiUser_RunCameraStreamViewSample()
@@ -179,6 +181,68 @@ void DjiUser_RunCameraStreamViewSample()
             return;
     }
 
+    delete liveviewSample;
+}
+
+void DjiTest_RunCameraStreamViewWithParam()
+{
+    T_DjiReturnCode returnCode;
+    CameraRGBImage camImg;
+    char mainName[] = "MAIN_CAM";
+    uint32_t cameraBitrate = 0;
+    T_DjiLiveviewCodecParamItem codec_param = {DJI_LIVEVIEW_CODEC_STRATEGY_ONDEMAND_I, 12000};
+    uint8_t HdvtSdrModeConfig = 0;
+    T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
+    LiveviewSample *liveviewSample;
+    try {
+        liveviewSample = new LiveviewSample();
+    } catch (...) {
+        return;
+    }
+
+    cout <<  "Liveview sample with param start\n\n";
+
+    returnCode = DjiUser_GetCurrentFileDirPath(__FILE__, DJI_FILE_PATH_SIZE_MAX, curFileDirPath);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        cout <<  "Get file current path error, stat = 0x%08llX" << std::hex << returnCode << "\n\n";
+    }
+
+    cout <<  "Please configure DJI Hdvt Sdr settings\n\n";
+    cout <<  "Please select whether to enable the Hdvt Sdr:\n\n";
+    cout <<  "--> [0] Enable normal hdvt sdr mode\n\n";
+    cout <<  "--> [2] Enable the silent hdvt sdr mode\n\n";
+    scanf("%d", &HdvtSdrModeConfig);
+    cout << endl;
+
+    returnCode = DjiLiveview_SetHdvtSdrMode((E_DjiLiveViewHdvtSdrMode)HdvtSdrModeConfig);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Set Hdvt Sdr mode error, stat = 0x", returnCode);
+    }
+
+    liveviewSample->StartMainCameraStreamWithStore(NULL, &mainName);
+
+    cout << "Please enter the bitrate value (unit: Kbps), supported range: 12000~20000\n" << endl;
+    scanf("%d", &cameraBitrate);
+    cout << endl;
+
+    codec_param.strategy = DJI_LIVEVIEW_CODEC_STRATEGY_ONDEMAND_I;
+    codec_param.bitrate_kbps = cameraBitrate;
+    returnCode = DjiLiveview_SetEncodingStrategy(DJI_LIVEVIEW_CAMERA_POSITION_NO_1,
+                                                DJI_LIVEVIEW_CAMERA_SOURCE_DEFAULT,
+                                                &codec_param);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("Set liveview bitrate error, stat = 0x%08llX", returnCode);
+    }
+
+    for (int i = 0; i < TEST_CAMERA_STREAM_STROING_TIME_IN_SECONDS; ++i) {
+        USER_LOG_INFO("Storing camera h264 stream, second: %d.", i + 1);
+        osalHandler->TaskSleepMs(1000);
+    }
+
+    liveviewSample->StopMainCameraStream();
+
+out:
+    USER_LOG_INFO("Liveview sample end");
     delete liveviewSample;
 }
 
