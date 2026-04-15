@@ -40,6 +40,7 @@
 #include <power_management/test_power_management.h>
 #include "data_transmission/test_data_transmission.h"
 #include <flight_controller/test_flight_controller_entry.h>
+#include <flight_controller/test_telemetry_stream_entry.h>
 #include <positioning/test_positioning.h>
 #include <hms_manager/hms_manager_entry.h>
 #include "camera_manager/test_camera_manager_entry.h"
@@ -76,6 +77,7 @@ start:
         << "| [f] Start rtk positioning sample - you can receive rtk rtcm data when rtk signal is ok           |\n"
         << "| [g] Request Lidar data sample - Request Lidar data and store the point cloud data as pcd files   |\n"
         << "| [h] Request Radar data sample - Request radar data                                               |\n"
+        << "| [j] Continuous telemetry sample - velocity, GPS, Euler angles, and GPS time                     |\n"
         << std::endl;
 
     std::cin >> inputChar;
@@ -136,6 +138,9 @@ start:
             break;
         case 'h':
             DjiUser_RunRadarDataSubscriptionSample();
+            break;
+        case 'j':
+            DjiUser_RunTelemetryStreamSample();
             break;
         default:
             break;

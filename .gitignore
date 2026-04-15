@@ -4,3 +4,5 @@ samples/sample_c++/platform/linux/nvidia_jetson/application/dji_sdk_app_info_loc
 
 # Ignore generated build output.
 build/
+
+Logs/telemetrydata
