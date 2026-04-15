@@ -42,7 +42,7 @@ extern "C" {
 
 /*!< Attention: Select your hardware connection mode here.
 * */
-#define CONFIG_HARDWARE_CONNECTION         DJI_USE_ONLY_UART
+#define CONFIG_HARDWARE_CONNECTION         DJI_USE_ONLY_USB_BULK_DEVICE
 
 #define CONFIG_MODULE_SAMPLE_CAMERA_EMU_ON              true
 

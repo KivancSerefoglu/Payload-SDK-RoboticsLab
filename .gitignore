@@ -1,0 +1,6 @@
+# Ignore local DJI app info overrides that can hold user-specific credentials.
+samples/sample_c/platform/linux/nvidia_jetson/application/dji_sdk_app_info_local.h
+samples/sample_c++/platform/linux/nvidia_jetson/application/dji_sdk_app_info_local.h
+
+# Ignore generated build output.
+build/
