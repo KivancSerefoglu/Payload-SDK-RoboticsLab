@@ -53,7 +53,7 @@ void DjiUser_RunTelemetryStreamSample(void)
     signal(SIGTERM, DjiUser_TelemetryStopSignalHandler);
 
     s_telemetryCsvFileName = DjiUser_GetTelemetryCsvFileName();
-    if (DjiUser_EnsureDirectoryExists("../../Logs/telemetrydata") != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+    if (DjiUser_EnsureDirectoryExists("../Logs/telemetrydata") != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("failed to create telemetry csv directory.");
         return;
     }
@@ -202,7 +202,7 @@ static std::string DjiUser_GetTelemetryCsvFileName(void)
     std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d_%H-%M-%S", &localTimeInfo);
 
     std::ostringstream fileNameStream;
-    fileNameStream << "../../Logs/telemetrydata/telemetry_" << timeBuffer << ".csv";
+    fileNameStream << "../Logs/telemetrydata/telemetry_" << timeBuffer << ".csv";
 
     return fileNameStream.str();
 }
